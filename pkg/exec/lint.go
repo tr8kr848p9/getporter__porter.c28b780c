@@ -66,7 +66,7 @@ func (m *Mixin) Lint(ctx context.Context) (linter.Results, error) {
 			// Found embedded bash 🚨
 			// Check for wrapping quotes, if missing -> hard error, otherwise just warn
 			result := linter.Result{
-				Level: linter.LevelError,
+				Level: linter.LevelWarning,
 				Code:  CodeEmbeddedBash,
 				Location: linter.Location{
 					Action:          action.Name,
@@ -81,7 +81,7 @@ func (m *Mixin) Lint(ctx context.Context) (linter.Results, error) {
 			results = append(results, result)
 
 			for _, bashCmd := range embeddedBashFlag.Values {
-				if (!strings.HasPrefix(bashCmd, `"`) || !strings.HasSuffix(bashCmd, `"`)) ||
+				if (!strings.HasPrefix(bashCmd, `"`) || !strings.HasSuffix(bashCmd, `"`)) &&
 					(!strings.HasPrefix(bashCmd, `'`) || !strings.HasSuffix(bashCmd, `'`)) {
 					result := linter.Result{
 						Level: linter.LevelError,
@@ -89,7 +89,7 @@ func (m *Mixin) Lint(ctx context.Context) (linter.Results, error) {
 						Location: linter.Location{
 							Action:          action.Name,
 							Mixin:           "exec",
-							StepNumber:      stepNumber,
+							StepNumber:      stepNumber + 1,
 							StepDescription: step.Description,
 						},
 						Title: "bash -c argument missing wrapping quotes",
