@@ -129,7 +129,7 @@ func (c *Context) createTraceClient(cfg LogConfiguration) (otlptrace.Client, err
 		if cfg.TelemetryEndpoint != "" {
 			opts = append(opts, otlptracegrpc.WithEndpoint(cfg.TelemetryEndpoint))
 		}
-		if !cfg.TelemetryInsecure {
+		if cfg.TelemetryInsecure {
 			opts = append(opts, otlptracegrpc.WithInsecure())
 		}
 		if cfg.TelemetryCertificate != "" {
@@ -153,7 +153,7 @@ func (c *Context) createTraceClient(cfg LogConfiguration) (otlptrace.Client, err
 			opts = append(opts, otlptracegrpc.WithHeaders(cfg.TelemetryHeaders))
 		}
 		return otlptracegrpc.NewClient(opts...), nil
-	case "http/protobuf":
+	case "http/protobuf", "":
 		var opts []otlptracehttp.Option
 		if cfg.TelemetryEndpoint != "" {
 			opts = append(opts, otlptracehttp.WithEndpoint(cfg.TelemetryEndpoint))
@@ -173,7 +173,10 @@ func (c *Context) createTraceClient(cfg LogConfiguration) (otlptrace.Client, err
 			opts = append(opts, otlptracehttp.WithTLSClientConfig(&tls.Config{RootCAs: cp}))
 		}
 		if cfg.TelemetryTimeout != "" {
-			timeout, _ := time.ParseDuration(cfg.TelemetryTimeout)
+			timeout, err := time.ParseDuration(cfg.TelemetryTimeout)
+			if err != nil {
+				return nil, fmt.Errorf("invalid telemetry timeout %s. Supported values are durations such as 30s or 1m: %w", cfg.TelemetryTimeout, err)
+			}
 			opts = append(opts, otlptracehttp.WithTimeout(timeout))
 		}
 		if cfg.TelemetryCompression != "" {
@@ -182,7 +185,7 @@ func (c *Context) createTraceClient(cfg LogConfiguration) (otlptrace.Client, err
 			case "gzip":
 				compression = otlptracehttp.GzipCompression
 			default:
-				compression = otlptracehttp.GzipCompression
+				compression = otlptracehttp.NoCompression
 			}
 			opts = append(opts, otlptracehttp.WithCompression(compression))
 		}
