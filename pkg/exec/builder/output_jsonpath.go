@@ -38,7 +38,7 @@ func ProcessJsonPathOutputs(ctx context.Context, cfg runtime.RuntimeConfig, step
 
 		outputName := output.GetName()
 		outputPath := output.GetJsonPath()
-		if outputName == "" {
+		if outputPath == "" {
 			continue
 		}
 
@@ -51,6 +51,7 @@ func ProcessJsonPathOutputs(ctx context.Context, cfg runtime.RuntimeConfig, step
 		if outputJson == nil {
 			if stdout != "" {
 				d := json.NewDecoder(bytes.NewBuffer([]byte(stdout)))
+				d.UseNumber()
 				err := d.Decode(&outputJson)
 				if err != nil {
 					return span.Error(fmt.Errorf("error unmarshaling stdout as json %s: %w", stdout, err))
@@ -67,8 +68,8 @@ func ProcessJsonPathOutputs(ctx context.Context, cfg runtime.RuntimeConfig, step
 
 			// Only marshal complex types to json, leave strings, numbers and booleans alone
 			switch t := value.(type) {
-			case map[string]interface{}:
-				valueB, err = json.Marshal(outputJson)
+			case map[string]interface{}, []interface{}:
+				valueB, err = json.Marshal(value)
 				if err != nil {
 					return span.Error(fmt.Errorf("error marshaling jsonpath result %v for output %q: %w", valueB, outputName, err))
 				}
