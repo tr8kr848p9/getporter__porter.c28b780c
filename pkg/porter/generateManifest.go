@@ -165,7 +165,8 @@ func (p *Porter) resolveDependencyDigest(ctx context.Context, e *yaml.Editor, op
 
 		bundleOpts := BundleReferenceOptions{
 			BundlePullOptions: BundlePullOptions{
-				Reference: dep.Bundle.Reference,
+				Reference:        dep.Bundle.Reference,
+				InsecureRegistry: opts.InsecureRegistry,
 			},
 		}
 
@@ -174,7 +175,7 @@ func (p *Porter) resolveDependencyDigest(ctx context.Context, e *yaml.Editor, op
 			return span.Errorf("failed to parse OCI reference for dependency %s: %w", dep.Name, err)
 		}
 
-		if ref.Tag() != "latest" {
+		if ref.Tag() == "" || ref.Tag() == "latest" {
 			return nil
 		}
 
@@ -193,7 +194,7 @@ func (p *Porter) resolveDependencyDigest(ctx context.Context, e *yaml.Editor, op
 				path += fmt.Sprintf("%s.", t)
 			case int:
 				path = strings.TrimSuffix(path, ".")
-				path += fmt.Sprintf(".%s.", strconv.Itoa(t))
+				path += fmt.Sprintf("[%s].", strconv.Itoa(t))
 			default:
 				continue
 			}
