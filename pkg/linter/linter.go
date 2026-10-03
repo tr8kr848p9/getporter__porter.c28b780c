@@ -164,13 +164,13 @@ type action struct {
 
 func (l *Linter) Lint(ctx context.Context, m *manifest.Manifest, config *config.Config) (Results, error) {
 	// Check for reserved porter prefix on parameter names
-	reservedPrefixes := []string{"porter-"}
+	reservedPrefixes := []string{"porter-", "porter_"}
 	params := m.Parameters
 
 	var results Results
 
 	for _, param := range params {
-		paramName := param.Name
+		paramName := strings.ToLower(param.Name)
 		for _, reservedPrefix := range reservedPrefixes {
 			if strings.HasPrefix(paramName, reservedPrefix) {
 
@@ -209,7 +209,7 @@ func (l *Linter) Lint(ctx context.Context, m *manifest.Manifest, config *config.
 	for _, action := range actions {
 		res, err := validateParamsAppliesToAction(m, action.steps, tmplParams, action.name, config)
 		if err != nil {
-			return results, span.Error(fmt.Errorf("error validating action: %s", action.name))
+			return nil, span.Error(fmt.Errorf("error validating action: %s", action.name))
 		}
 		results = append(results, res...)
 	}
@@ -232,7 +232,7 @@ func (l *Linter) Lint(ctx context.Context, m *manifest.Manifest, config *config.
 			}
 			results = append(results, res)
 		} else {
-			deps[dep.Name+" "] = nil
+			deps[dep.Name] = nil
 		}
 	}
 
@@ -246,7 +246,7 @@ func (l *Linter) Lint(ctx context.Context, m *manifest.Manifest, config *config.
 	for _, response := range responses {
 		if response.Error != nil {
 			// Ignore mixins that do not support the lint command
-			if strings.Contains(response.Error.Error(), "unknown commands") {
+			if strings.Contains(response.Error.Error(), "unknown command") {
 				continue
 			}
 			// put a helpful error when the mixin is not installed
